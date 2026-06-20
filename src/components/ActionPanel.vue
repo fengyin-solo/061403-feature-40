@@ -12,7 +12,8 @@
       >
         <span class="btn-icon">🪓</span>
         <span class="btn-text">砍柴</span>
-        <span class="btn-cost">-5 体温</span>
+        <span class="btn-cost">-{{ chopCost }} 体温</span>
+        <span v-if="isBlizzard" class="btn-hint blizzard-hint">暴风雪×2</span>
       </button>
       <button 
         class="action-btn" 
@@ -21,7 +22,7 @@
       >
         <span class="btn-icon">🏹</span>
         <span class="btn-text">狩猎</span>
-        <span class="btn-cost">-8 体温</span>
+        <span class="btn-cost">-{{ huntCost }} 体温</span>
         <span class="btn-hint">成功率: {{ Math.round(huntRate * 100) }}%</span>
       </button>
       <button 
@@ -31,7 +32,7 @@
       >
         <span class="btn-icon">🔨</span>
         <span class="btn-text">制作工具</span>
-        <span class="btn-cost">-6 体温</span>
+        <span class="btn-cost">-{{ makeToolsCost }} 体温</span>
         <span class="btn-hint">需要: 2🪵 + 1🦊</span>
       </button>
       <button 
@@ -105,7 +106,7 @@
       >
         <span class="btn-icon">🔧</span>
         <span class="btn-text">高级工具</span>
-        <span class="btn-cost">-10 体温</span>
+        <span class="btn-cost">-{{ craftAdvancedToolsCost }} 体温</span>
         <span class="btn-hint">需要: 2💎 + 1🔪</span>
       </button>
       <button 
@@ -125,7 +126,7 @@
       >
         <span class="btn-icon">🧥</span>
         <span class="btn-text">保暖装备</span>
-        <span class="btn-cost">-8 体温</span>
+        <span class="btn-cost">-{{ craftWarmGearCost }} 体温</span>
         <span class="btn-hint">需要: 2⚙️ + 2🦊</span>
       </button>
     </div>
@@ -136,6 +137,7 @@
 defineProps({
   isNight: { type: Boolean, default: false },
   gameOver: { type: Boolean, default: false },
+  isBlizzard: { type: Boolean, default: false },
   canFire: { type: Boolean, default: false },
   canCraft: { type: Boolean, default: false },
   canMakeAdvancedTools: { type: Boolean, default: false },
@@ -145,7 +147,12 @@ defineProps({
   food: { type: Number, default: 0 },
   medicine: { type: Number, default: 0 },
   resourceNodes: { type: Array, default: () => [] },
-  exploreCost: { type: Number, default: 12 }
+  chopCost: { type: Number, default: 5 },
+  huntCost: { type: Number, default: 8 },
+  makeToolsCost: { type: Number, default: 6 },
+  exploreCost: { type: Number, default: 12 },
+  craftAdvancedToolsCost: { type: Number, default: 10 },
+  craftWarmGearCost: { type: Number, default: 8 }
 })
 
 defineEmits(['chop', 'hunt', 'craft', 'fire', 'eat', 'explore', 'craftAdvancedTools', 'craftMedicine', 'craftWarmGear', 'useMedicine'])
@@ -266,6 +273,17 @@ defineEmits(['chop', 'hunt', 'craft', 'fire', 'eat', 'explore', 'craftAdvancedTo
 .btn-hint {
   font-size: 10px;
   color: rgba(255, 255, 255, 0.6);
+}
+
+.blizzard-hint {
+  color: #e74c3c;
+  font-weight: bold;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
 .medicine-btn:not(.disabled) {

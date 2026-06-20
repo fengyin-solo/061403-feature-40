@@ -55,10 +55,33 @@ export function useGame() {
     if (warmGear.value > 0) multiplier *= (1 - warmGear.value * 0.15)
     return Math.max(0.3, multiplier)
   })
-  const exploreTempCost = computed(() => {
+  const chopTempCost = computed(() => {
+    const baseCost = 5
+    return isBlizzard.value ? baseCost * 2 : baseCost
+  })
+  const huntTempCost = computed(() => {
+    const baseCost = 8
+    return isBlizzard.value ? baseCost * 2 : baseCost
+  })
+  const makeToolsTempCost = computed(() => {
+    const baseCost = 6
+    return isBlizzard.value ? baseCost * 2 : baseCost
+  })
+  const craftAdvancedToolsTempCost = computed(() => {
+    const baseCost = 10
+    return isBlizzard.value ? baseCost * 2 : baseCost
+  })
+  const craftWarmGearTempCost = computed(() => {
+    const baseCost = 8
+    return isBlizzard.value ? baseCost * 2 : baseCost
+  })
+  const exploreBaseTempCost = computed(() => {
     const baseCost = 12
     const toolBonus = Math.min(advancedTools.value * 2, 4)
     return baseCost - toolBonus
+  })
+  const exploreTempCost = computed(() => {
+    return isBlizzard.value ? exploreBaseTempCost.value * 2 : exploreBaseTempCost.value
   })
 
   function addLog(message, type = 'info') {
@@ -101,10 +124,10 @@ export function useGame() {
   }
 
   function refreshResourceNodes() {
-    resourceNodes.value = resourceNodes.value.filter(node => node.remainingDays > 0).map(node => ({
+    resourceNodes.value = resourceNodes.value.map(node => ({
       ...node,
       remainingDays: node.remainingDays - 1
-    }))
+    })).filter(node => node.remainingDays > 0)
 
     const dayBonus = Math.min(dayCount.value * 0.02, 0.2)
     const blizzardBonus = isBlizzard.value ? 0.1 : 0
@@ -162,12 +185,12 @@ export function useGame() {
   function startDayCycle() {
     dayCount.value++
     addLog(`天亮了，第 ${dayCount.value} 天开始`, 'success')
-    isBlizzard.value = false
     if (nightConsumptionTimer) {
       clearInterval(nightConsumptionTimer)
       nightConsumptionTimer = null
     }
     refreshResourceNodes()
+    isBlizzard.value = false
   }
 
   function explore(nodeIndex) {
@@ -178,8 +201,7 @@ export function useGame() {
     }
 
     const node = resourceNodes.value[nodeIndex]
-    const multiplier = isBlizzard.value ? 2 : 1
-    const tempCost = exploreTempCost.value * multiplier
+    const tempCost = exploreTempCost.value
 
     temperature.value = Math.max(0, temperature.value - tempCost)
 
@@ -221,8 +243,7 @@ export function useGame() {
       return
     }
 
-    const multiplier = isBlizzard.value ? 2 : 1
-    const tempCost = 10 * multiplier
+    const tempCost = craftAdvancedToolsTempCost.value
 
     ore.value -= 2
     tools.value -= 1
@@ -254,8 +275,7 @@ export function useGame() {
       return
     }
 
-    const multiplier = isBlizzard.value ? 2 : 1
-    const tempCost = 8 * multiplier
+    const tempCost = craftWarmGearTempCost.value
 
     parts.value -= 2
     hide.value -= 2
@@ -298,8 +318,7 @@ export function useGame() {
   function chopWood() {
     if (gameOver.value || isNight.value) return
     
-    const multiplier = isBlizzard.value ? 2 : 1
-    const tempCost = 5 * multiplier
+    const tempCost = chopTempCost.value
     
     temperature.value = Math.max(0, temperature.value - tempCost)
     const woodGained = Math.floor(Math.random() * 3) + 2
@@ -317,8 +336,7 @@ export function useGame() {
   function hunt() {
     if (gameOver.value || isNight.value) return
     
-    const multiplier = isBlizzard.value ? 2 : 1
-    const tempCost = 8 * multiplier
+    const tempCost = huntTempCost.value
     
     temperature.value = Math.max(0, temperature.value - tempCost)
     
@@ -346,8 +364,7 @@ export function useGame() {
       return
     }
     
-    const multiplier = isBlizzard.value ? 2 : 1
-    const tempCost = 6 * multiplier
+    const tempCost = makeToolsTempCost.value
     
     wood.value -= 2
     hide.value -= 1
@@ -571,6 +588,11 @@ export function useGame() {
     canMakeWarmGear,
     huntSuccessRate,
     exploreTempCost,
+    chopTempCost,
+    huntTempCost,
+    makeToolsTempCost,
+    craftAdvancedToolsTempCost,
+    craftWarmGearTempCost,
     chopWood,
     hunt,
     makeTools,

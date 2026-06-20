@@ -67,6 +67,7 @@
           <ActionPanel 
             :isNight="isNight"
             :gameOver="gameOver"
+            :isBlizzard="isBlizzard"
             :canFire="canMakeFire"
             :canCraft="wood >= 2 && hide >= 1"
             :canMakeAdvancedTools="canMakeAdvancedTools"
@@ -76,7 +77,12 @@
             :food="food"
             :medicine="medicine"
             :resourceNodes="resourceNodes"
+            :chopCost="chopTempCost"
+            :huntCost="huntTempCost"
+            :makeToolsCost="makeToolsTempCost"
             :exploreCost="exploreTempCost"
+            :craftAdvancedToolsCost="craftAdvancedToolsTempCost"
+            :craftWarmGearCost="craftWarmGearTempCost"
             @chop="handleChop"
             @hunt="handleHunt"
             @craft="handleCraft"
@@ -150,6 +156,11 @@ const {
   canMakeWarmGear,
   huntSuccessRate,
   exploreTempCost,
+  chopTempCost,
+  huntTempCost,
+  makeToolsTempCost,
+  craftAdvancedToolsTempCost,
+  craftWarmGearTempCost,
   chopWood,
   hunt,
   makeTools,
