@@ -14,10 +14,24 @@ export function useGame() {
   const gameOverReason = ref('')
   const actionLog = ref([])
 
+  const ore = ref(0)
+  const herbs = ref(0)
+  const parts = ref(0)
+  const advancedTools = ref(0)
+  const medicine = ref(0)
+  const warmGear = ref(0)
+  const resourceNodes = ref([])
+
   const DAY_DURATION = 30000
   const NIGHT_DURATION = 20000
   const HEAT_CONSUMPTION_RATE = 2
   const BLIZZARD_CHANCE = 0.15
+
+  const RARE_RESOURCES = {
+    ore: { name: '矿石', icon: '💎', baseChance: 0.25, minAmount: 1, maxAmount: 3, duration: 2 },
+    herbs: { name: '草药', icon: '🌿', baseChance: 0.35, minAmount: 2, maxAmount: 4, duration: 1 },
+    parts: { name: '零件', icon: '⚙️', baseChance: 0.15, minAmount: 1, maxAmount: 2, duration: 3 }
+  }
 
   let dayNightTimer = null
   let nightConsumptionTimer = null
@@ -27,7 +41,25 @@ export function useGame() {
   const isDanger = computed(() => temperature.value < 30)
   const canMakeFire = computed(() => wood.value >= 3)
   const canHunt = computed(() => tools.value > 0)
-  const huntSuccessRate = computed(() => 0.3 + tools.value * 0.15)
+  const huntSuccessRate = computed(() => {
+    let rate = 0.3 + tools.value * 0.15 + advancedTools.value * 0.2
+    return Math.min(0.95, rate)
+  })
+  const canExplore = computed(() => resourceNodes.value.length > 0)
+  const canMakeAdvancedTools = computed(() => ore.value >= 2 && tools.value >= 1)
+  const canMakeMedicine = computed(() => herbs.value >= 2 && food.value >= 1)
+  const canMakeWarmGear = computed(() => parts.value >= 2 && hide.value >= 2)
+  const heatConsumptionMultiplier = computed(() => {
+    let multiplier = 1
+    if (isBlizzard.value) multiplier *= 2
+    if (warmGear.value > 0) multiplier *= (1 - warmGear.value * 0.15)
+    return Math.max(0.3, multiplier)
+  })
+  const exploreTempCost = computed(() => {
+    const baseCost = 12
+    const toolBonus = Math.min(advancedTools.value * 2, 4)
+    return baseCost - toolBonus
+  })
 
   function addLog(message, type = 'info') {
     const timestamp = new Date().toLocaleTimeString()
@@ -52,8 +84,7 @@ export function useGame() {
   function consumeHeat() {
     if (gameOver.value) return
     
-    const multiplier = isBlizzard.value ? 2 : 1
-    const consumption = HEAT_CONSUMPTION_RATE * multiplier
+    const consumption = HEAT_CONSUMPTION_RATE * heatConsumptionMultiplier.value
     
     if (heat.value >= consumption) {
       heat.value -= consumption
@@ -67,6 +98,54 @@ export function useGame() {
     }
     
     checkGameOver()
+  }
+
+  function refreshResourceNodes() {
+    resourceNodes.value = resourceNodes.value.filter(node => node.remainingDays > 0).map(node => ({
+      ...node,
+      remainingDays: node.remainingDays - 1
+    }))
+
+    const dayBonus = Math.min(dayCount.value * 0.02, 0.2)
+    const blizzardBonus = isBlizzard.value ? 0.1 : 0
+
+    Object.entries(RARE_RESOURCES).forEach(([key, config]) => {
+      const chance = config.baseChance + dayBonus + blizzardBonus
+      if (Math.random() < chance) {
+        const existing = resourceNodes.value.find(n => n.type === key)
+        if (!existing) {
+          const amount = Math.floor(Math.random() * (config.maxAmount - config.minAmount + 1)) + config.minAmount
+          resourceNodes.value.push({
+            type: key,
+            name: config.name,
+            icon: config.icon,
+            amount,
+            remainingDays: config.duration,
+            maxAmount: amount
+          })
+          addLog(`✨ 发现了 ${config.icon} ${config.name} 资源点！可采集 ${amount} 次`, 'success')
+        }
+      }
+    })
+
+    if (isBlizzard.value && Math.random() < 0.3) {
+      const bonusTypes = ['ore', 'parts']
+      const bonusType = bonusTypes[Math.floor(Math.random() * bonusTypes.length)]
+      const config = RARE_RESOURCES[bonusType]
+      const existing = resourceNodes.value.find(n => n.type === bonusType)
+      if (!existing) {
+        resourceNodes.value.push({
+          type: bonusType,
+          name: config.name,
+          icon: config.icon,
+          amount: 1,
+          remainingDays: 1,
+          maxAmount: 1,
+          isBlizzardBonus: true
+        })
+        addLog(`🌪️ 暴风雪带来了稀有 ${config.icon} ${config.name}！`, 'success')
+      }
+    }
   }
 
   function startNightCycle() {
@@ -88,6 +167,118 @@ export function useGame() {
       clearInterval(nightConsumptionTimer)
       nightConsumptionTimer = null
     }
+    refreshResourceNodes()
+  }
+
+  function explore(nodeIndex) {
+    if (gameOver.value || isNight.value) return
+    if (nodeIndex < 0 || nodeIndex >= resourceNodes.value.length) {
+      addLog('没有可探索的资源点', 'warning')
+      return
+    }
+
+    const node = resourceNodes.value[nodeIndex]
+    const multiplier = isBlizzard.value ? 2 : 1
+    const tempCost = exploreTempCost.value * multiplier
+
+    temperature.value = Math.max(0, temperature.value - tempCost)
+
+    const eventRoll = Math.random()
+    if (eventRoll < 0.1) {
+      addLog(`探索 ${node.icon} ${node.name} 时遭遇危险！体温额外下降 5`, 'danger')
+      temperature.value = Math.max(0, temperature.value - 5)
+    } else if (eventRoll < 0.25 && advancedTools.value > 0) {
+      const bonus = Math.floor(Math.random() * 2) + 1
+      addLog(`🔧 高级工具发挥作用！额外获得 ${bonus} ${node.icon}`, 'success')
+      ore.value += node.type === 'ore' ? bonus : 0
+      herbs.value += node.type === 'herbs' ? bonus : 0
+      parts.value += node.type === 'parts' ? bonus : 0
+    }
+
+    ore.value += node.type === 'ore' ? 1 : 0
+    herbs.value += node.type === 'herbs' ? 1 : 0
+    parts.value += node.type === 'parts' ? 1 : 0
+
+    addLog(`探索成功：获得 1 ${node.icon} ${node.name}，消耗 ${tempCost} 体温`, 'success')
+
+    node.amount--
+    if (node.amount <= 0) {
+      resourceNodes.value.splice(nodeIndex, 1)
+      addLog(`${node.icon} ${node.name} 资源点已枯竭`, 'info')
+    }
+
+    if (Math.random() < BLIZZARD_CHANCE * 0.3) {
+      triggerBlizzard()
+    }
+
+    checkGameOver()
+  }
+
+  function craftAdvancedTools() {
+    if (gameOver.value || isNight.value) return
+    if (!canMakeAdvancedTools.value) {
+      addLog('材料不足：需要 2 矿石和 1 工具', 'warning')
+      return
+    }
+
+    const multiplier = isBlizzard.value ? 2 : 1
+    const tempCost = 10 * multiplier
+
+    ore.value -= 2
+    tools.value -= 1
+    advancedTools.value += 1
+    temperature.value = Math.max(0, temperature.value - tempCost)
+
+    addLog(`制作高级工具：获得 1 🔧 高级工具，消耗 ${tempCost} 体温`, 'success')
+    checkGameOver()
+  }
+
+  function craftMedicine() {
+    if (gameOver.value) return
+    if (!canMakeMedicine.value) {
+      addLog('材料不足：需要 2 草药和 1 食物', 'warning')
+      return
+    }
+
+    herbs.value -= 2
+    food.value -= 1
+    medicine.value += 1
+
+    addLog('制作药剂：获得 1 💊 治疗药剂', 'success')
+  }
+
+  function craftWarmGear() {
+    if (gameOver.value || isNight.value) return
+    if (!canMakeWarmGear.value) {
+      addLog('材料不足：需要 2 零件和 2 兽皮', 'warning')
+      return
+    }
+
+    const multiplier = isBlizzard.value ? 2 : 1
+    const tempCost = 8 * multiplier
+
+    parts.value -= 2
+    hide.value -= 2
+    warmGear.value += 1
+    temperature.value = Math.max(0, temperature.value - tempCost)
+
+    addLog(`制作保暖装备：获得 1 🧥 保暖装备，消耗 ${tempCost} 体温`, 'success')
+    checkGameOver()
+  }
+
+  function useMedicine() {
+    if (gameOver.value || medicine.value < 1) {
+      addLog('没有治疗药剂！', 'warning')
+      return
+    }
+
+    medicine.value -= 1
+    const tempGained = Math.floor(Math.random() * 20) + 25
+    const heatGained = Math.floor(Math.random() * 15) + 20
+    temperature.value = Math.min(100, temperature.value + tempGained)
+    heat.value = Math.min(100, heat.value + heatGained)
+
+    addLog(`使用药剂：体温恢复 ${tempGained}，热量恢复 ${heatGained}`, 'success')
   }
 
   function toggleDayNight() {
@@ -227,6 +418,13 @@ export function useGame() {
       food: food.value,
       hide: hide.value,
       tools: tools.value,
+      ore: ore.value,
+      herbs: herbs.value,
+      parts: parts.value,
+      advancedTools: advancedTools.value,
+      medicine: medicine.value,
+      warmGear: warmGear.value,
+      resourceNodes: resourceNodes.value,
       isDay: isDay.value,
       dayCount: dayCount.value,
       isBlizzard: isBlizzard.value,
@@ -251,6 +449,13 @@ export function useGame() {
       food.value = gameState.food
       hide.value = gameState.hide
       tools.value = gameState.tools
+      ore.value = gameState.ore || 0
+      herbs.value = gameState.herbs || 0
+      parts.value = gameState.parts || 0
+      advancedTools.value = gameState.advancedTools || 0
+      medicine.value = gameState.medicine || 0
+      warmGear.value = gameState.warmGear || 0
+      resourceNodes.value = gameState.resourceNodes || []
       isDay.value = gameState.isDay
       dayCount.value = gameState.dayCount
       isBlizzard.value = gameState.isBlizzard
@@ -304,6 +509,13 @@ export function useGame() {
     food.value = 5
     hide.value = 0
     tools.value = 0
+    ore.value = 0
+    herbs.value = 0
+    parts.value = 0
+    advancedTools.value = 0
+    medicine.value = 0
+    warmGear.value = 0
+    resourceNodes.value = []
     isDay.value = true
     dayCount.value = 1
     isBlizzard.value = false
@@ -313,13 +525,16 @@ export function useGame() {
     
     stopTimers()
     startTimers()
+    refreshResourceNodes()
     
     addLog('新游戏开始！祝你好运！', 'success')
   }
 
   onMounted(() => {
     startTimers()
+    refreshResourceNodes()
     addLog('欢迎来到雪地生存！白天收集资源，夜晚保持温暖。', 'info')
+    addLog('💡 探索稀缺资源点，制作高级装备延长生存！', 'info')
   })
 
   onUnmounted(() => {
@@ -333,6 +548,13 @@ export function useGame() {
     food,
     hide,
     tools,
+    ore,
+    herbs,
+    parts,
+    advancedTools,
+    medicine,
+    warmGear,
+    resourceNodes,
     isDay,
     isNight,
     dayCount,
@@ -343,12 +565,22 @@ export function useGame() {
     isDanger,
     canMakeFire,
     canHunt,
+    canExplore,
+    canMakeAdvancedTools,
+    canMakeMedicine,
+    canMakeWarmGear,
     huntSuccessRate,
+    exploreTempCost,
     chopWood,
     hunt,
     makeTools,
     makeFire,
     eatFood,
+    explore,
+    craftAdvancedTools,
+    craftMedicine,
+    craftWarmGear,
+    useMedicine,
     saveGame,
     loadGame,
     getSaveSlots,

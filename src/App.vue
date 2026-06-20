@@ -38,6 +38,12 @@
             :food="food"
             :hide="hide"
             :tools="tools"
+            :ore="ore"
+            :herbs="herbs"
+            :parts="parts"
+            :advancedTools="advancedTools"
+            :medicine="medicine"
+            :warmGear="warmGear"
           />
         </div>
 
@@ -63,13 +69,24 @@
             :gameOver="gameOver"
             :canFire="canMakeFire"
             :canCraft="wood >= 2 && hide >= 1"
+            :canMakeAdvancedTools="canMakeAdvancedTools"
+            :canMakeMedicine="canMakeMedicine"
+            :canMakeWarmGear="canMakeWarmGear"
             :huntRate="huntSuccessRate"
             :food="food"
+            :medicine="medicine"
+            :resourceNodes="resourceNodes"
+            :exploreCost="exploreTempCost"
             @chop="handleChop"
             @hunt="handleHunt"
             @craft="handleCraft"
             @fire="handleFire"
             @eat="handleEat"
+            @explore="handleExplore"
+            @craftAdvancedTools="handleCraftAdvancedTools"
+            @craftMedicine="handleCraftMedicine"
+            @craftWarmGear="handleCraftWarmGear"
+            @useMedicine="handleUseMedicine"
           />
         </div>
       </div>
@@ -112,6 +129,13 @@ const {
   food,
   hide,
   tools,
+  ore,
+  herbs,
+  parts,
+  advancedTools,
+  medicine,
+  warmGear,
+  resourceNodes,
   isDay,
   isNight,
   dayCount,
@@ -121,12 +145,21 @@ const {
   actionLog,
   isDanger,
   canMakeFire,
+  canMakeAdvancedTools,
+  canMakeMedicine,
+  canMakeWarmGear,
   huntSuccessRate,
+  exploreTempCost,
   chopWood,
   hunt,
   makeTools,
   makeFire,
   eatFood,
+  explore,
+  craftAdvancedTools,
+  craftMedicine,
+  craftWarmGear,
+  useMedicine,
   saveGame,
   loadGame,
   getSaveSlots,
@@ -201,6 +234,51 @@ function handleEat() {
   if (food.value > 0) {
     playEat()
     eatFood()
+  } else {
+    playWarning()
+  }
+}
+
+function handleExplore(nodeIndex) {
+  playChop()
+  explore(nodeIndex)
+}
+
+function handleCraftAdvancedTools() {
+  if (canMakeAdvancedTools.value) {
+    playCraft()
+    craftAdvancedTools()
+    playSuccess()
+  } else {
+    playWarning()
+  }
+}
+
+function handleCraftMedicine() {
+  if (canMakeMedicine.value) {
+    playCraft()
+    craftMedicine()
+    playSuccess()
+  } else {
+    playWarning()
+  }
+}
+
+function handleCraftWarmGear() {
+  if (canMakeWarmGear.value) {
+    playCraft()
+    craftWarmGear()
+    playSuccess()
+  } else {
+    playWarning()
+  }
+}
+
+function handleUseMedicine() {
+  if (medicine.value > 0) {
+    playEat()
+    useMedicine()
+    playSuccess()
   } else {
     playWarning()
   }

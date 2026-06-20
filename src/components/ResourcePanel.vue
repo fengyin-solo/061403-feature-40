@@ -1,6 +1,6 @@
 <template>
   <div class="resource-panel">
-    <h3 class="panel-title">资源</h3>
+    <h3 class="panel-title">基础资源</h3>
     <div class="resources-grid">
       <div class="resource-item">
         <span class="resource-icon">🔥</span>
@@ -41,6 +41,56 @@
         </div>
       </div>
     </div>
+
+    <h3 class="panel-title rare-title">稀缺资源</h3>
+    <div class="resources-grid">
+      <div class="resource-item rare-item">
+        <span class="resource-icon">💎</span>
+        <div class="resource-info">
+          <span class="resource-name">矿石</span>
+          <span class="resource-value-large">{{ ore }}</span>
+        </div>
+      </div>
+      <div class="resource-item rare-item">
+        <span class="resource-icon">🌿</span>
+        <div class="resource-info">
+          <span class="resource-name">草药</span>
+          <span class="resource-value-large">{{ herbs }}</span>
+        </div>
+      </div>
+      <div class="resource-item rare-item">
+        <span class="resource-icon">⚙️</span>
+        <div class="resource-info">
+          <span class="resource-name">零件</span>
+          <span class="resource-value-large">{{ parts }}</span>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="panel-title advanced-title">高级装备</h3>
+    <div class="resources-grid">
+      <div class="resource-item advanced-item">
+        <span class="resource-icon">🔧</span>
+        <div class="resource-info">
+          <span class="resource-name">高级工具</span>
+          <span class="resource-value-large">{{ advancedTools }}</span>
+        </div>
+      </div>
+      <div class="resource-item advanced-item">
+        <span class="resource-icon">💊</span>
+        <div class="resource-info">
+          <span class="resource-name">治疗药剂</span>
+          <span class="resource-value-large">{{ medicine }}</span>
+        </div>
+      </div>
+      <div class="resource-item advanced-item">
+        <span class="resource-icon">🧥</span>
+        <div class="resource-info">
+          <span class="resource-name">保暖装备</span>
+          <span class="resource-value-large">{{ warmGear }}</span>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -50,7 +100,13 @@ const props = defineProps({
   wood: { type: Number, default: 0 },
   food: { type: Number, default: 0 },
   hide: { type: Number, default: 0 },
-  tools: { type: Number, default: 0 }
+  tools: { type: Number, default: 0 },
+  ore: { type: Number, default: 0 },
+  herbs: { type: Number, default: 0 },
+  parts: { type: Number, default: 0 },
+  advancedTools: { type: Number, default: 0 },
+  medicine: { type: Number, default: 0 },
+  warmGear: { type: Number, default: 0 }
 })
 
 function getHeatColor() {
@@ -73,14 +129,39 @@ function getHeatColor() {
   color: white;
   font-size: 18px;
   margin-bottom: 15px;
+  margin-top: 20px;
   text-align: center;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.panel-title:first-child {
+  margin-top: 0;
+}
+
+.rare-title {
+  color: #9b59b6;
+  text-shadow: 2px 2px 4px rgba(155, 89, 182, 0.5);
+}
+
+.advanced-title {
+  color: #f39c12;
+  text-shadow: 2px 2px 4px rgba(243, 156, 18, 0.5);
 }
 
 .resources-grid {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.rare-item {
+  border: 1px solid rgba(155, 89, 182, 0.3);
+  background: rgba(155, 89, 182, 0.1);
+}
+
+.advanced-item {
+  border: 1px solid rgba(243, 156, 18, 0.3);
+  background: rgba(243, 156, 18, 0.1);
 }
 
 .resource-item {
